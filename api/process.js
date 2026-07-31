@@ -7,6 +7,10 @@ import { timingSafeHeader } from "../lib/validation.js";
 
 const MAX_ATTEMPTS = 5;
 
+function markdownText(value) {
+  return String(value).replace(/[\\`*_[\]<>]/g, "\\$&");
+}
+
 async function claimNext() {
   return withTransaction(async (client) => {
     const selected = await client.query(
@@ -44,7 +48,7 @@ function issueBody(report, route) {
   const base = process.env.FIXLOOP_PUBLIC_BASE_URL?.replace(/\/$/, "");
   const statusUrl = base ? `${base}/?report=${report.public_id}` : null;
   const attachmentList = report.attachments.length
-    ? report.attachments.map((file) => `- ${file.filename} (${file.mime_type}, ${file.byte_size} bytes)`).join("\n")
+    ? report.attachments.map((file) => `- ${markdownText(file.filename)} (${file.mime_type}, ${file.byte_size} bytes)`).join("\n")
     : "None";
   return [
     route.description,
@@ -62,11 +66,15 @@ function issueBody(report, route) {
   ].filter(Boolean).join("\n");
 }
 
-async function dispatchAgent(report, issue) {
+async function dispatchAgent(report, issue, delivery = "initial") {
   const url = process.env.FIXLOOP_AGENT_WEBHOOK_URL;
   const secret = process.env.FIXLOOP_AGENT_WEBHOOK_SECRET;
   if (!url || !secret) return false;
   const body = JSON.stringify({
+    deliveryId: delivery === "initial"
+      ? `${report.public_id}:issue:${issue.number}`
+      : `${report.public_id}:reminder:${Math.floor(Date.now() / (12 * 60 * 60 * 1000))}`,
+    delivery,
     reportId: report.public_id,
     repository: report.repository,
     issueNumber: issue.number,
@@ -84,6 +92,55 @@ async function dispatchAgent(report, issue) {
   });
   if (!response.ok) throw new Error(`Agent dispatch returned ${response.status}`);
   return true;
+}
+
+async function claimReminder() {
+  return withTransaction(async (client) => {
+    const selected = await client.query(
+      `select *
+       from fixloop.reports
+       where status in ('assigned', 'fixing', 'pull_request', 'deployed')
+         and updated_at < now() - interval '12 hours'
+         and (lease_until is null or lease_until < now())
+       order by updated_at
+       for update skip locked
+       limit 1`
+    );
+    if (!selected.rowCount) return null;
+    const report = selected.rows[0];
+    await client.query(
+      "update fixloop.reports set lease_until = now() + interval '10 minutes' where id = $1",
+      [report.id]
+    );
+    return report;
+  });
+}
+
+async function sendReminder(report) {
+  try {
+    const dispatched = await dispatchAgent(report, {
+      number: report.github_issue_number,
+      html_url: report.github_issue_url
+    }, "reminder");
+    await withTransaction(async (client) => {
+      await client.query(
+        `update fixloop.reports
+         set lease_until = null, updated_at = now(), last_error = null
+         where id = $1`,
+        [report.id]
+      );
+      if (dispatched) await addEvent(client, report.id, report.status, "Fix agent reminded");
+    });
+    return dispatched;
+  } catch (error) {
+    await withTransaction(async (client) => {
+      await client.query(
+        "update fixloop.reports set lease_until = null, last_error = $2 where id = $1",
+        [report.id, error.message.slice(0, 1000)]
+      );
+    });
+    throw error;
+  }
 }
 
 async function finalize(report, route, issue) {
@@ -161,9 +218,19 @@ export default async function handler(request, response) {
     return json(response, 401, { error: "Unauthorized" });
   }
 
-  const catalog = await repositoryCatalog();
   const report = await claimNext();
-  if (!report) return json(response, 200, { processed: 0 });
+  if (!report) {
+    const reminder = await claimReminder();
+    if (!reminder) return json(response, 200, { processed: 0 });
+    try {
+      const dispatched = await sendReminder(reminder);
+      return json(response, 200, { processed: 0, reminded: dispatched ? 1 : 0 });
+    } catch (error) {
+      console.error("reminder failed", error);
+      return json(response, 500, { processed: 0, error: "Reminder failed and will retry" });
+    }
+  }
+  const catalog = await repositoryCatalog();
   try {
     const route = await classifyReport(report, report.attachments, catalog);
     if (!route) {

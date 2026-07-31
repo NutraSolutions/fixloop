@@ -17,6 +17,15 @@ function sourceUrl(includeQuery) {
   return url.toString();
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -89,16 +98,16 @@ export class FixloopWidget {
     const root = document.createElement("div");
     root.className = "fixloop";
     root.innerHTML = `
-      <button class="fixloop__trigger" type="button" aria-label="${this.options.label}">
+      <button class="fixloop__trigger" type="button" aria-label="${escapeHtml(this.options.label)}">
         <span aria-hidden="true">+</span>
-        <strong>${this.options.label}</strong>
+        <strong>${escapeHtml(this.options.label)}</strong>
       </button>
       <div class="fixloop__backdrop" hidden>
         <section class="fixloop__modal" role="dialog" aria-modal="true" aria-labelledby="fixloop-title">
           <header>
             <div>
               <p class="fixloop__eyebrow">FIXLOOP</p>
-              <h2 id="fixloop-title">${this.options.title}</h2>
+              <h2 id="fixloop-title">${escapeHtml(this.options.title)}</h2>
             </div>
             <button class="fixloop__close" type="button" aria-label="Close">×</button>
           </header>
@@ -120,7 +129,7 @@ export class FixloopWidget {
             <ul class="fixloop__files" aria-live="polite"></ul>
             <p class="fixloop__message" role="status"></p>
             <footer>
-              <span>${document.title} · ${new URL(location.href).pathname}</span>
+              <span>${escapeHtml(document.title)} · ${escapeHtml(new URL(location.href).pathname)}</span>
               <button class="fixloop__submit" type="submit">Send report</button>
             </footer>
           </form>
@@ -144,7 +153,7 @@ export class FixloopWidget {
         <span>Project <small>optional</small></span>
         <select name="repository">
           <option value="">Choose automatically</option>
-          ${this.options.repositories.map((repo) => `<option value="${repo.value}">${repo.label}</option>`).join("")}
+          ${this.options.repositories.map((repo) => `<option value="${escapeHtml(repo.value)}">${escapeHtml(repo.label)}</option>`).join("")}
         </select>
       </label>`;
   }
@@ -241,7 +250,7 @@ export class FixloopWidget {
     list.innerHTML = "";
     this.files.forEach((file, index) => {
       const item = document.createElement("li");
-      item.innerHTML = `<span>${file.name}<small>${Math.ceil(file.size / 1024)} KB</small></span><button type="button" aria-label="Remove ${file.name}">×</button>`;
+      item.innerHTML = `<span>${escapeHtml(file.name)}<small>${Math.ceil(file.size / 1024)} KB</small></span><button type="button" aria-label="Remove ${escapeHtml(file.name)}">×</button>`;
       item.querySelector("button").addEventListener("click", () => {
         this.files.splice(index, 1);
         this.renderFiles();

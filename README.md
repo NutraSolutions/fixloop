@@ -6,7 +6,7 @@ Fixloop is a portable bug-to-fix loop for any web application:
 2. An IndexedDB outbox retries until the durable intake API confirms storage.
 3. A scheduled processor routes the report only to a repository from a live GitHub allowlist.
 4. GitHub receives an idempotent issue.
-5. An optional agent webhook starts the fix.
+5. An optional signed agent webhook starts the fix and re-pings unfinished work every twelve hours.
 6. Agent and GitHub callbacks build a public status timeline through verification.
 
 No reporter identity is collected. Query strings, URL fragments, credentials, and browser fingerprints are excluded by default.
@@ -81,6 +81,8 @@ The receiver gets:
 ```json
 {
   "reportId": "24-character-public-id",
+  "deliveryId": "idempotency-key-for-this-delivery",
+  "delivery": "initial",
   "repository": "owner/name",
   "issueNumber": 42,
   "issueUrl": "https://github.com/owner/name/issues/42",

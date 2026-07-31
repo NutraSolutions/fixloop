@@ -43,3 +43,5 @@ Content-Type: application/json
 ```
 
 The endpoint never accepts repository or issue-number changes. Those fields are fixed during intake.
+
+Agent dispatch payloads include a stable `deliveryId`. Receivers must deduplicate that value. A `delivery` value of `reminder` means the issue is still open after twelve hours; resume or report the blocker instead of starting duplicate work.
