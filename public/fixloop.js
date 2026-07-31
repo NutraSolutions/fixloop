@@ -8,6 +8,32 @@ const DEFAULTS = {
   maxFileBytes: 2 * 1024 * 1024
 };
 
+export const ALLOWED_ATTACHMENT_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/gif",
+  "image/webp",
+  "application/pdf",
+  "text/plain",
+  "text/csv",
+  "application/json",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+]);
+
+export function retryableStatus(status) {
+  return status === 408 || status === 429 || status >= 500;
+}
+
+class FixloopHttpError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = "FixloopHttpError";
+    this.status = status;
+    this.retryable = retryableStatus(status);
+  }
+}
+
 function sourceUrl(includeQuery) {
   const url = new URL(window.location.href);
   if (!includeQuery) {
@@ -238,6 +264,10 @@ export class FixloopWidget {
         this.message(`${file.name} is too large.`, "error");
         continue;
       }
+      if (!ALLOWED_ATTACHMENT_TYPES.has(String(file.type).toLowerCase())) {
+        this.message(`${file.name} uses an unsupported file type.`, "error");
+        continue;
+      }
       if (!this.files.some((item) => item.name === file.name && item.size === file.size)) {
         this.files.push(file);
       }
@@ -285,8 +315,13 @@ export class FixloopWidget {
         result = await this.options.submit(payload);
       } else {
         await outboxPut(payload);
-        result = await this.sendPayload(payload);
-        await outboxDelete(payload.clientRequestId);
+        try {
+          result = await this.sendPayload(payload);
+          await outboxDelete(payload.clientRequestId);
+        } catch (error) {
+          if (error.retryable === false) await outboxDelete(payload.clientRequestId);
+          throw error;
+        }
       }
       this.message(`Saved. Tracking ID: ${result.id}`, "success");
       this.options.onSubmitted?.(result);
@@ -306,8 +341,10 @@ export class FixloopWidget {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || "Report failed");
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new FixloopHttpError(result.error || `Report failed (${response.status})`, response.status);
+    }
     return result;
   }
 
@@ -320,7 +357,12 @@ export class FixloopWidget {
           const result = await this.sendPayload(payload);
           await outboxDelete(payload.clientRequestId);
           this.options.onSubmitted?.(result);
-        } catch {
+        } catch (error) {
+          if (error.retryable === false) {
+            await outboxDelete(payload.clientRequestId);
+            this.options.onRejected?.({ payload, error });
+            continue;
+          }
           break;
         }
       }
@@ -334,4 +376,4 @@ export function mountFixloop(options) {
   return new FixloopWidget(options).mount();
 }
 
-if (document.currentScript?.dataset.auto === "true") mountFixloop();
+if (typeof document !== "undefined" && document.currentScript?.dataset.auto === "true") mountFixloop();
