@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Fixloop is a portable in-product bug intake and automated fix tracker.">
+  <title>Fixloop · Product demo</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="shell">
+    <nav>
+      <div class="brand">FIXLOOP</div>
+      <div class="nav-links">
+        <span class="chip">OPEN SOURCE · MIT</span>
+        <a class="github" href="https://github.com/NutraSolutions/fixloop">View on GitHub ↗</a>
+      </div>
+    </nav>
+    <main>
+      <section class="hero">
+        <div>
+          <div class="eyebrow">IN-PRODUCT BUG INTAKE</div>
+          <h1>See it.<br>Send it.<br>Ship it.</h1>
+          <p class="lead">One floating button turns page context, pasted screenshots, and documents into a routed GitHub issue, an agent fix, and a visible verification trail.</p>
+        </div>
+        <div class="try">
+          <strong>Try the working demo.</strong>
+          <span>Tap “Report a bug” below. Paste an image or attach a file. This demo uses local sample data and sends nothing.</span>
+        </div>
+      </section>
+
+      <section class="process" aria-label="Fixloop workflow">
+        <article class="step"><div class="num">01</div><h2>Capture</h2><p>Safe page path, description, clipboard images, PDFs, and documents.</p></article>
+        <article class="step"><div class="num">02</div><h2>Route</h2><p>Exact-match GitHub repository allowlist. Uncertain reports stop for clarification.</p></article>
+        <article class="step"><div class="num">03</div><h2>Fix</h2><p>Optional signed webhook dispatches your coding agent with the issue contract.</p></article>
+        <article class="step"><div class="num">04</div><h2>Verify</h2><p>PR, deployment, and real workflow verification report back to one timeline.</p></article>
+      </section>
+
+      <section class="tracker" data-visible="false" aria-live="polite">
+        <header>
+          <div><small>TRACKING ID · <span data-report-id></span></small><h2>Sample report lifecycle</h2></div>
+          <span class="status">RECEIVED</span>
+        </header>
+        <div class="timeline">
+          <div class="event"><strong>Received</strong>Stored durably</div>
+          <div class="event"><strong>Routed</strong>Repository matched</div>
+          <div class="event"><strong>Filed</strong>Issue created</div>
+          <div class="event"><strong>Fixing</strong>Agent dispatched</div>
+          <div class="event"><strong>Verified</strong>Workflow passed</div>
+        </div>
+      </section>
+
+      <p class="privacy">Privacy default: no reporter identity, URL query, fragment, browser fingerprint, or analytics ID is collected.</p>
+    </main>
+  </div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

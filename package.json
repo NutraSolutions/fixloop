@@ -1,0 +1,29 @@
+{
+  "name": "fixloop",
+  "version": "0.1.0",
+  "description": "Portable bug intake, GitHub routing, agent dispatch, and status reporting.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build:showcase": "node scripts/build-showcase.mjs",
+    "test": "node --test",
+    "check": "node --check public/fixloop.js && node --check api/reports.js && node --check api/process.js && node --check api/github-webhook.js && node --check api/agent-status.js && node --test"
+  },
+  "dependencies": {
+    "pg": "^8.16.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NutraSolutions/fixloop.git"
+  },
+  "keywords": [
+    "bug-reporting",
+    "github-issues",
+    "agent-workflow",
+    "feedback-widget",
+    "vercel"
+  ]
+}

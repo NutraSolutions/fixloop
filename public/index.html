@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Fixloop turns in-product bug reports into tracked fixes.">
+  <title>Fixloop · Close the loop on bugs</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #e7e5dc; color: #171b22; font: 16px/1.5 ui-sans-serif, system-ui, sans-serif; }
+    .shell { min-height: 100vh; padding: 24px; }
+    nav { display: flex; align-items: center; justify-content: space-between; max-width: 1160px; margin: auto; }
+    .brand { font: 850 18px/1 ui-monospace, monospace; letter-spacing: -.04em; }
+    .pill { padding: 8px 12px; border: 1px solid rgba(23,27,34,.2); border-radius: 999px; font-size: 12px; }
+    main { max-width: 1160px; margin: 72px auto 0; }
+    .hero { display: grid; grid-template-columns: 1.4fr .8fr; gap: 60px; align-items: end; }
+    .kicker { font: 800 11px/1 ui-monospace, monospace; letter-spacing: .16em; }
+    h1 { max-width: 850px; margin: 18px 0 24px; font-size: clamp(55px, 8vw, 118px); line-height: .87; letter-spacing: -.075em; }
+    .lead { max-width: 540px; margin: 0; font-size: 19px; color: #555950; }
+    .note { border-top: 1px solid rgba(23,27,34,.25); padding-top: 18px; }
+    .note strong { display: block; margin-bottom: 7px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 80px; }
+    .card { min-height: 210px; padding: 24px; border: 1px solid rgba(23,27,34,.18); border-radius: 18px; background: rgba(255,255,255,.38); }
+    .card span { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #171b22; color: #f2ff66; font-weight: 800; }
+    .card h2 { margin-top: 38px; font-size: 21px; }
+    .card p { color: #5f625b; }
+    @media(max-width: 760px) { .hero, .grid { grid-template-columns: 1fr; } .hero { gap: 35px; } main { margin-top: 50px; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <nav><div class="brand">FIXLOOP</div><div class="pill">OPEN SOURCE</div></nav>
+    <main>
+      <section class="hero">
+        <div>
+          <div class="kicker">BUG INTAKE → VERIFIED FIX</div>
+          <h1>See it.<br>Send it.<br>Ship it.</h1>
+          <p class="lead">A floating reporter captures context and attachments. The server routes a GitHub issue, dispatches your coding agent, and reports progress back.</p>
+        </div>
+        <div class="note"><strong>Try the live widget.</strong>Tap the button in the bottom right. Paste a screenshot directly into the form.</div>
+      </section>
+      <section class="grid">
+        <article class="card"><span>1</span><h2>Capture in context</h2><p>Page title and safe URL path arrive with screenshots, PDFs, and documents.</p></article>
+        <article class="card"><span>2</span><h2>Route with guardrails</h2><p>Only exact matches from your live repository allowlist can receive an issue.</p></article>
+        <article class="card"><span>3</span><h2>Track the fix</h2><p>Issue, agent, pull request, deployment, and verification become one visible timeline.</p></article>
+      </section>
+    </main>
+  </div>
+  <script type="module">
+    import { mountFixloop } from "./fixloop.js";
+    mountFixloop({
+      onSubmitted(result) {
+        console.info("Fixloop report saved", result.id);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fixloop Agent"
+  short_description: "Fix reported bugs and publish verified status"
+  default_prompt: "Use $fixloop-agent to claim this Fixloop issue, implement the fix, open a PR, deploy it, and report verified status."
