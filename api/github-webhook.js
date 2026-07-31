@@ -33,17 +33,18 @@ export default async function handler(request, response) {
   const issueNumber = payload.issue?.number;
   if (!repository || !issueNumber || event !== "issues") return json(response, 202, { ignored: true });
 
-  const status = payload.action === "closed" ? "verified" : "filed";
-  const detail = payload.action === "closed" ? "GitHub issue closed" : `GitHub issue ${payload.action}`;
+  const detail = payload.action === "closed"
+    ? "GitHub issue closed; deployment verification is still required"
+    : `GitHub issue ${payload.action}`;
   await withTransaction(async (client) => {
     const result = await client.query(
       `update fixloop.reports
-       set status = $3, updated_at = now()
+       set updated_at = now()
        where lower(repository) = lower($1) and github_issue_number = $2
-       returning id`,
-      [repository, issueNumber, status]
+       returning id, status`,
+      [repository, issueNumber]
     );
-    for (const row of result.rows) await addEvent(client, row.id, status, detail);
+    for (const row of result.rows) await addEvent(client, row.id, row.status, detail);
   });
   return json(response, 200, { ok: true });
 }

@@ -115,7 +115,9 @@ The included `skills/fixloop-agent` skill gives a coding agent the claim, fix, t
 - Cron, GitHub webhook, and agent callback endpoints require separate secrets.
 - Automatic agent execution is opt-in and belongs behind its own sandbox and approval policy.
 
-Production deployments should also add edge rate limiting, malware scanning for documents, retention limits, encrypted object storage for larger files, and private status-page authentication when reports may contain sensitive product details.
+The included Vercel transport accepts up to 2 MB per file and 2.5 MB of raw attachments per report so the base64 request remains below the platform body limit.
+
+Production deployments should also add edge rate limiting, malware scanning for documents, retention limits, direct-to-object-storage uploads for larger files, and private status-page authentication when reports may contain sensitive product details.
 
 ## Test
 

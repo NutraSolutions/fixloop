@@ -65,7 +65,7 @@ function issueBody(report, route) {
 async function dispatchAgent(report, issue) {
   const url = process.env.FIXLOOP_AGENT_WEBHOOK_URL;
   const secret = process.env.FIXLOOP_AGENT_WEBHOOK_SECRET;
-  if (!url || !secret) return;
+  if (!url || !secret) return false;
   const body = JSON.stringify({
     reportId: report.public_id,
     repository: report.repository,
@@ -83,6 +83,7 @@ async function dispatchAgent(report, issue) {
     body
   });
   if (!response.ok) throw new Error(`Agent dispatch returned ${response.status}`);
+  return true;
 }
 
 async function finalize(report, route, issue) {
@@ -99,14 +100,16 @@ async function finalize(report, route, issue) {
   });
   report.repository = route.repository;
   try {
-    await dispatchAgent(report, issue);
-    await withTransaction(async (client) => {
-      await client.query(
-        "update fixloop.reports set status = 'assigned', updated_at = now() where id = $1",
-        [report.id]
-      );
-      await addEvent(client, report.id, "assigned", "Fix agent notified");
-    });
+    const dispatched = await dispatchAgent(report, issue);
+    if (dispatched) {
+      await withTransaction(async (client) => {
+        await client.query(
+          "update fixloop.reports set status = 'assigned', updated_at = now() where id = $1",
+          [report.id]
+        );
+        await addEvent(client, report.id, "assigned", "Fix agent notified");
+      });
+    }
   } catch (error) {
     await withTransaction(async (client) => {
       await client.query(

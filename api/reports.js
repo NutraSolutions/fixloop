@@ -2,6 +2,10 @@ import { database, withTransaction, addEvent } from "../lib/db.js";
 import { json, method } from "../lib/http.js";
 import { reportInput } from "../lib/validation.js";
 
+export const config = {
+  api: { bodyParser: { sizeLimit: "4mb" } }
+};
+
 async function createReport(request, response) {
   let input;
   try {

@@ -5,7 +5,7 @@ const DEFAULTS = {
   repositories: [],
   includeQuery: false,
   maxFiles: 6,
-  maxFileBytes: 4 * 1024 * 1024
+  maxFileBytes: 2 * 1024 * 1024
 };
 
 function sourceUrl(includeQuery) {
