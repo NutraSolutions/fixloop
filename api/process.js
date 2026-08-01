@@ -4,6 +4,7 @@ import { repositoryCatalog, findIssueByMarker, createIssue } from "../lib/github
 import { classifyReport } from "../lib/classifier.js";
 import { json, method } from "../lib/http.js";
 import { timingSafeHeader } from "../lib/validation.js";
+import { publicServiceUrl, publicStatusPageUrl } from "../lib/status.js";
 
 const MAX_ATTEMPTS = 5;
 
@@ -45,8 +46,11 @@ async function claimNext() {
 }
 
 function issueBody(report, route) {
-  const base = process.env.FIXLOOP_PUBLIC_BASE_URL?.replace(/\/$/, "");
-  const statusUrl = base ? `${base}/?report=${report.public_id}` : null;
+  const statusUrl = publicStatusPageUrl(
+    report.public_id,
+    process.env.FIXLOOP_PUBLIC_BASE_URL,
+    false
+  );
   const attachmentList = report.attachments.length
     ? report.attachments.map((file) => `- ${markdownText(file.filename)} (${file.mime_type}, ${file.byte_size} bytes)`).join("\n")
     : "None";
@@ -69,7 +73,8 @@ function issueBody(report, route) {
 async function dispatchAgent(report, issue, delivery = "initial") {
   const url = process.env.FIXLOOP_AGENT_WEBHOOK_URL;
   const secret = process.env.FIXLOOP_AGENT_WEBHOOK_SECRET;
-  if (!url || !secret) return false;
+  const callbackUrl = publicServiceUrl("api/agent-status");
+  if (!url || !secret || !callbackUrl) return false;
   const body = JSON.stringify({
     deliveryId: delivery === "initial"
       ? `${report.public_id}:issue:${issue.number}`
@@ -79,7 +84,7 @@ async function dispatchAgent(report, issue, delivery = "initial") {
     repository: report.repository,
     issueNumber: issue.number,
     issueUrl: issue.html_url,
-    callbackUrl: `${process.env.FIXLOOP_PUBLIC_BASE_URL?.replace(/\/$/, "")}/api/agent-status`
+    callbackUrl
   });
   const signature = createHmac("sha256", secret).update(body).digest("hex");
   const response = await fetch(url, {

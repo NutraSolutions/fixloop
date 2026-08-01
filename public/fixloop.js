@@ -5,8 +5,62 @@ const DEFAULTS = {
   repositories: [],
   includeQuery: false,
   maxFiles: 6,
-  maxFileBytes: 2 * 1024 * 1024
+  maxFileBytes: 2 * 1024 * 1024,
+  statusPageUrl: "/status"
 };
+
+export const TRACKED_REPORTS_KEY = "fixloop.reports.v1";
+
+export function safeStatusPageLink(value, baseUrl = globalThis.document?.baseURI) {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value, baseUrl);
+    return ["http:", "https:"].includes(parsed.protocol) ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+const REPORT_ID = /^[a-f0-9]{24}$/;
+
+function availableStorage(storage) {
+  if (storage) return storage;
+  try {
+    return globalThis.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function trackedReports(storage = null) {
+  try {
+    const target = availableStorage(storage);
+    if (!target) return [];
+    const parsed = JSON.parse(target.getItem(TRACKED_REPORTS_KEY) || "[]");
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item) => REPORT_ID.test(String(item?.id || "")))
+      .map((item) => ({ id: item.id, createdAt: item.createdAt || null }))
+      .slice(0, 50);
+  } catch {
+    return [];
+  }
+}
+
+export function rememberReport(report, storage = null) {
+  const id = String(report?.id || "");
+  if (!REPORT_ID.test(id)) return trackedReports(storage);
+  const target = availableStorage(storage);
+  const next = [
+    { id, createdAt: report.createdAt || new Date().toISOString() },
+    ...trackedReports(target).filter((item) => item.id !== id)
+  ].slice(0, 50);
+  try {
+    target?.setItem(TRACKED_REPORTS_KEY, JSON.stringify(next));
+  } catch {
+    // Status tracking is a convenience. Submission remains successful if storage is unavailable.
+  }
+  return next;
+}
 
 export const ALLOWED_ATTACHMENT_TYPES = new Set([
   "image/png",
@@ -247,9 +301,16 @@ export class FixloopWidget {
     this.root.querySelector(".fixloop__trigger").focus();
   }
 
-  message(text, state = "") {
+  message(text, state = "", link = null) {
     const element = this.root.querySelector(".fixloop__message");
-    element.textContent = text;
+    element.replaceChildren(document.createTextNode(text));
+    const safeLink = safeStatusPageLink(link);
+    if (safeLink) {
+      const anchor = document.createElement("a");
+      anchor.href = safeLink;
+      anchor.textContent = "View status";
+      element.append(" ", anchor);
+    }
     element.dataset.state = state;
   }
 
@@ -323,7 +384,9 @@ export class FixloopWidget {
           throw error;
         }
       }
-      this.message(`Saved. Tracking ID: ${result.id}`, "success");
+      rememberReport(result);
+      const statusPage = result.statusPageUrl || `${this.options.statusPageUrl}#${encodeURIComponent(result.id)}`;
+      this.message(`Saved. Tracking ID: ${result.id}`, "success", statusPage);
       this.options.onSubmitted?.(result);
       form.reset();
       this.files = [];
@@ -356,6 +419,7 @@ export class FixloopWidget {
         try {
           const result = await this.sendPayload(payload);
           await outboxDelete(payload.clientRequestId);
+          rememberReport(result);
           this.options.onSubmitted?.(result);
         } catch (error) {
           if (error.retryable === false) {
