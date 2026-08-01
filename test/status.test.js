@@ -41,9 +41,11 @@ test("trackedReports fails closed on corrupt browser storage", () => {
 test("status page renders untrusted report data through textContent", () => {
   const page = fs.readFileSync(new URL("../public/status.html", import.meta.url), "utf8");
   const client = fs.readFileSync(new URL("../public/status.js", import.meta.url), "utf8");
+  const vercel = JSON.parse(fs.readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
   assert.match(page, /id="reportList"/);
   assert.match(page, /id="trackingForm"/);
   assert.match(client, /node\.textContent = text/);
   assert.doesNotMatch(client, /innerHTML/);
   assert.match(client, /\['http:', 'https:'\]/);
+  assert.equal(vercel.cleanUrls, true);
 });
