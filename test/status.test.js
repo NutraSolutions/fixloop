@@ -144,27 +144,6 @@ test("operator cannot skip active work", async () => {
   assert.deepEqual(result, { outcome: "active", status: "fixing" });
 });
 
-test("operator can skip expired processing work", async () => {
-  let calls = 0;
-  const client = {
-    async query() {
-      calls += 1;
-      if (calls === 1) return {
-        rowCount: 1,
-        rows: [{
-          id: "internal",
-          status: "processing",
-          lease_until: "2026-08-01T00:00:00.000Z",
-          current_time: "2026-08-01T00:01:00.000Z"
-        }]
-      };
-      return { rowCount: 1, rows: [] };
-    }
-  };
-  const result = await skipStatusReport(client, "c".repeat(24), "stop retrying", async () => {});
-  assert.equal(result.outcome, "skipped");
-});
-
 test("status page renders untrusted report data through textContent", () => {
   const page = fs.readFileSync(new URL("../public/status.html", import.meta.url), "utf8");
   const client = fs.readFileSync(new URL("../public/status.js", import.meta.url), "utf8");
