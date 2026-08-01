@@ -11,7 +11,7 @@ Fixloop is a portable bug-to-fix loop for any web application:
 
 The `/status` page lists reports submitted from the current browser. A tracking ID can be added manually when a report was submitted elsewhere. Set `FIXLOOP_PUBLIC_BASE_URL` to the Fixloop service origin so widgets embedded on other sites receive an absolute status link. The browser-local list does not transfer between origins or browser profiles. Operators can page through the server-owned report list with `FIXLOOP_STATUS_SECRET`. The public path fetches only unguessable report IDs already known to the browser and sends batches in a POST body, never in URL logs or history. Operators can skip reports that have not entered active processing and must record a reason. The row and its timeline remain as an audit record. Status responses retain the newest 100 timeline events per report.
 
-No reporter identity is collected. Query strings, URL fragments, credentials, and browser fingerprints are excluded by default.
+Reporter identity is optional and caller-supplied. Fixloop never derives it from network or browser metadata. Query strings, URL fragments, credentials, and browser fingerprints are excluded by default.
 
 ## Demo
 
@@ -31,6 +31,7 @@ Copy `public/fixloop.js` and `public/fixloop.css` into your application, then mo
 
   mountFixloop({
     endpoint: "/api/reports",
+    senderIdentity: "user:stable-internal-id",
     repositories: [
       { value: "acme/storefront", label: "Storefront" },
       { value: "acme/api", label: "API" }
@@ -48,7 +49,7 @@ The included serverless functions target Vercel and Postgres.
 1. Create a Postgres database.
 2. Apply `sql/schema.sql`.
 3. Copy `.env.example` to `.env.local` and set the variables.
-4. For an existing database, apply `sql/002_status_management.sql`.
+4. For an existing database, apply `sql/002_status_management.sql` and `sql/003_sender_identity.sql`.
 5. Deploy the repository to Vercel.
 6. Add a GitHub webhook pointing to `https://YOUR_DOMAIN/api/github-webhook`.
 7. Select the `Issues` event and use `FIXLOOP_GITHUB_WEBHOOK_SECRET`.
@@ -88,6 +89,8 @@ The receiver gets:
   "reportId": "24-character-public-id",
   "deliveryId": "idempotency-key-for-this-delivery",
   "delivery": "initial",
+  "senderIdentity": "user:stable-internal-id",
+  "senderIdentitySource": "caller",
   "repository": "owner/name",
   "issueNumber": 42,
   "issueUrl": "https://github.com/owner/name/issues/42",
@@ -112,7 +115,7 @@ The included `skills/fixloop-agent` skill gives a coding agent the claim, fix, t
 
 ## Privacy and security defaults
 
-- No name, email, user-agent, IP, or analytics identity is stored by the application.
+- Reporter identity is stored only when the embedding application supplies `senderIdentity`. It is labeled caller-supplied, not authentication proof. Fixloop does not derive names, email, user-agent, IP, or analytics identity.
 - Page URLs lose query strings, fragments, usernames, and passwords at both client and server boundaries.
 - Reports enter an IndexedDB outbox before network transmission and use a UUID idempotency key for safe retries.
 - Attachments are type-checked, size-capped, hashed, and stored in Postgres.

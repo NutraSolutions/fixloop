@@ -3,7 +3,7 @@ import { withTransaction, addEvent } from "../lib/db.js";
 import { repositoryCatalog, findIssueByMarker, createIssue } from "../lib/github.js";
 import { classifyReport } from "../lib/classifier.js";
 import { json, method } from "../lib/http.js";
-import { timingSafeHeader } from "../lib/validation.js";
+import { senderIdentityForLog, timingSafeHeader } from "../lib/validation.js";
 import { publicServiceUrl, publicStatusPageUrl } from "../lib/status.js";
 
 const MAX_ATTEMPTS = 5;
@@ -61,6 +61,7 @@ function issueBody(report, route) {
     `- Page: ${report.page_title}`,
     `- URL: ${report.page_url}`,
     `- Severity: ${route.severity}`,
+    `- Reported sender: ${markdownText(senderIdentityForLog(report.sender_identity))}`,
     statusUrl ? `- Public status: ${statusUrl}` : null,
     "",
     "## Attachments",
@@ -82,6 +83,8 @@ async function dispatchAgent(report, issue, delivery = "initial") {
     delivery,
     reportId: report.public_id,
     repository: report.repository,
+    senderIdentity: report.sender_identity || null,
+    senderIdentitySource: report.sender_identity ? "caller" : null,
     issueNumber: issue.number,
     issueUrl: issue.html_url,
     callbackUrl

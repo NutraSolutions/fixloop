@@ -3,6 +3,7 @@ const DEFAULTS = {
   label: "Report a bug",
   title: "Report a problem",
   repositories: [],
+  senderIdentity: null,
   includeQuery: false,
   maxFiles: 6,
   maxFileBytes: 2 * 1024 * 1024,
@@ -369,6 +370,7 @@ export class FixloopWidget {
         pageUrl: sourceUrl(this.options.includeQuery),
         description: values.get("description"),
         repository: values.get("repository") || null,
+        senderIdentity: this.options.senderIdentity || null,
         attachments
       };
       let result;
