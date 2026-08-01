@@ -123,6 +123,7 @@ test("sender identity stays optional and bounded", () => {
   assert.equal(normalizeSenderIdentity(" Eric Stark\n<npub> "), "Eric Stark <npub>");
   assert.equal(normalizeSenderIdentity("Eric\u001bStark"), "Eric Stark");
   assert.equal(normalizeSenderIdentity("\u202Emoc.live@rekcatta"), "moc.live@rekcatta");
+  assert.equal(normalizeSenderIdentity("Eric\u061cStark"), "Eric Stark");
   assert.throws(() => normalizeSenderIdentity("x".repeat(321)), /too long/);
   assert.equal(senderIdentityForLog(null), "Not provided");
   assert.equal(senderIdentityForLog(" Eric\nStark "), "Eric Stark");

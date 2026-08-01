@@ -40,13 +40,28 @@ test("pre-migration schema keeps anonymous intake working", async () => {
         : { rowCount: 0, rows: [] };
     }
   };
-  const result = await insertReport(client, input);
+  const result = await insertReport(client, { ...input, senderIdentity: null });
   assert.equal(result.rows[0].public_id, "b".repeat(24));
   assert.equal(calls.length, 5);
   assert.match(calls[2].text, /rollback to savepoint/);
   assert.match(calls[3].text, /release savepoint/);
   assert.doesNotMatch(calls[4].text, /sender_identity/);
   assert.deepEqual(calls[4].values, Object.values(input).slice(0, 5));
+});
+
+test("pre-migration schema keeps identified intake queued for retry", async () => {
+  const calls = [];
+  const client = {
+    async query(text) {
+      calls.push(text);
+      if (/sender_identity/.test(text)) throw Object.assign(new Error("missing column"), { code: "42703" });
+      return { rowCount: 0, rows: [] };
+    }
+  };
+  await assert.rejects(() => insertReport(client, input), { code: "42703" });
+  assert.equal(calls.some((text) => /insert into/.test(text) && !/sender_identity/.test(text)), false);
+  assert.match(calls[2], /rollback to savepoint/);
+  assert.match(calls[3], /release savepoint/);
 });
 
 test("unexpected database errors fail closed", async () => {
