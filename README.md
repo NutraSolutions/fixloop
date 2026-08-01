@@ -51,7 +51,7 @@ The included serverless functions target Vercel and Postgres.
 6. Select the `Issues` event and use `FIXLOOP_GITHUB_WEBHOOK_SECRET`.
 7. Call `GET /api/process` with `Authorization: Bearer CRON_SECRET` for a smoke test.
 
-Vercel Cron calls `/api/process` every ten minutes. Vercel sends `CRON_SECRET` as a bearer token when the project variable is configured.
+Vercel Cron calls `/api/process` every five minutes. Each claimed report records a `processing` event before routing, then files the GitHub issue and notifies the fix agent when configured. Vercel sends `CRON_SECRET` as a bearer token when the project variable is configured.
 
 ## GitHub token permissions
 
