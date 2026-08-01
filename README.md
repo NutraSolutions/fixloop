@@ -57,7 +57,7 @@ The included serverless functions target Vercel and Postgres.
 
 Set `FIXLOOP_STATUS_SECRET` to a separate long random value for the authenticated operator list.
 
-Vercel Cron calls `/api/process` every ten minutes. Vercel sends `CRON_SECRET` as a bearer token when the project variable is configured.
+Vercel Cron calls `/api/process` every five minutes. Each claimed report records a `processing` event before routing, then files the GitHub issue and notifies the fix agent when configured. Vercel sends `CRON_SECRET` as a bearer token when the project variable is configured.
 
 ## GitHub token permissions
 
