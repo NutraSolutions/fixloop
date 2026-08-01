@@ -47,6 +47,8 @@ h2 { margin: 0; font-size: 25px; letter-spacing: -.03em; }
 .resolution { border-left: 3px solid #85a200; padding-left: 12px; }
 .skip-report { margin-top: 18px; border: 1px solid #9d2c28; border-radius: 9px; padding: 9px 12px; background: transparent; color: #9d2c28; font-weight: 800; cursor: pointer; }
 .skip-report:disabled { cursor: wait; opacity: .55; }
+.skip-controls { display: flex; gap: 8px; margin-top: 18px; }
+.skip-reason { min-width: 0; flex: 1 1 auto; border: 1px solid var(--line); border-radius: 9px; padding: 9px 12px; }
 .timeline { display: grid; gap: 14px; margin: 22px 0 0; padding: 0; list-style: none; }
 .timeline li { position: relative; padding-left: 18px; }
 .timeline li::before { position: absolute; left: 0; top: 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--ink); content: ""; }

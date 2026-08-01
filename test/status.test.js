@@ -4,6 +4,9 @@ import fs from "node:fs";
 import {
   parseReportId,
   parseReportIds,
+  operatorCursor,
+  parseOperatorCursor,
+  parseSkipReason,
   MAX_STATUS_EVENTS,
   MAX_OPERATOR_REPORTS,
   MAX_STATUS_REPORTS,
@@ -65,6 +68,21 @@ test("operator list requires an exact separate status secret", () => {
   assert.equal(statusAuthorized({ headers: {} }, "correct"), false);
 });
 
+test("operator cursor round-trips and rejects malformed input", () => {
+  const report = { created_at: "2026-08-01T00:00:00.000Z", public_id: "a".repeat(24) };
+  assert.deepEqual(parseOperatorCursor(operatorCursor(report)), {
+    createdAt: report.created_at,
+    publicId: report.public_id
+  });
+  assert.throws(() => parseOperatorCursor("bad"), /Invalid status cursor/);
+});
+
+test("skip reason is required and bounded", () => {
+  assert.equal(parseSkipReason("  duplicate  "), "duplicate");
+  assert.throws(() => parseSkipReason(" "), /required/);
+  assert.throws(() => parseSkipReason("x".repeat(501)), /500/);
+});
+
 test("public status links use the configured service origin", () => {
   const id = "a".repeat(24);
   assert.equal(publicStatusPageUrl(id, "https://bugs.example.com/"), `https://bugs.example.com/status#${id}`);
@@ -90,10 +108,12 @@ test("status report selection keeps public IDs parameterized", async () => {
   assert.deepEqual(observed.values, [ids]);
   assert.match(observed.text, /r\.public_id = any\(\$1::text\[\]\)/);
   assert.doesNotMatch(observed.text, new RegExp(ids[0]));
-  await selectStatusReports(client);
-  assert.deepEqual(observed.values, [MAX_OPERATOR_REPORTS]);
+  const cursor = { createdAt: "2026-08-01T00:00:00.000Z", publicId: "c".repeat(24) };
+  await selectStatusReports(client, null, cursor);
+  assert.deepEqual(observed.values, [MAX_OPERATOR_REPORTS + 1, cursor.createdAt, cursor.publicId]);
   assert.match(observed.text, /with selected as/);
   assert.match(observed.text, /limit \$1/);
+  assert.match(observed.text, /\(created_at, public_id\) </);
   assert.match(observed.text, /left join lateral/);
   assert.match(observed.text, new RegExp(`limit ${MAX_STATUS_EVENTS}`));
 });
@@ -108,10 +128,10 @@ test("operator skip retains the report and records an audit event", async () => 
     }
   };
   const events = [];
-  const result = await skipStatusReport(client, "a".repeat(24), async (...args) => events.push(args));
+  const result = await skipStatusReport(client, "a".repeat(24), "duplicate request", async (...args) => events.push(args));
   assert.deepEqual(result, { outcome: "skipped", status: "skipped" });
   assert.match(queries[1].text, /set status = 'skipped'/);
-  assert.deepEqual(events[0].slice(1), ["internal", "skipped", "Skipped by operator"]);
+  assert.deepEqual(events[0].slice(1), ["internal", "skipped", "Skipped by operator: duplicate request"]);
 });
 
 test("operator cannot skip active work", async () => {
@@ -120,8 +140,29 @@ test("operator cannot skip active work", async () => {
       return { rowCount: 1, rows: [{ id: "internal", status: "fixing" }] };
     }
   };
-  const result = await skipStatusReport(client, "b".repeat(24), () => assert.fail("event must not be written"));
+  const result = await skipStatusReport(client, "b".repeat(24), "not relevant", () => assert.fail("event must not be written"));
   assert.deepEqual(result, { outcome: "active", status: "fixing" });
+});
+
+test("operator can skip expired processing work", async () => {
+  let calls = 0;
+  const client = {
+    async query() {
+      calls += 1;
+      if (calls === 1) return {
+        rowCount: 1,
+        rows: [{
+          id: "internal",
+          status: "processing",
+          lease_until: "2026-08-01T00:00:00.000Z",
+          current_time: "2026-08-01T00:01:00.000Z"
+        }]
+      };
+      return { rowCount: 1, rows: [] };
+    }
+  };
+  const result = await skipStatusReport(client, "c".repeat(24), "stop retrying", async () => {});
+  assert.equal(result.outcome, "skipped");
 });
 
 test("status page renders untrusted report data through textContent", () => {
@@ -137,8 +178,13 @@ test("status page renders untrusted report data through textContent", () => {
   assert.doesNotMatch(client, /\?ids=/);
   assert.match(client, /history\.replaceState/);
   assert.match(client, /method: "DELETE"/);
+  assert.match(client, /reason: reason\.value\.trim\(\)/);
+  assert.match(page, /id="loadMore"/);
   assert.match(client, /\['http:', 'https:'\]/);
   assert.match(processor, /\/status#\$\{report\.public_id\}/);
   assert.match(endpoint, /FIXLOOP_STATUS_SECRET/);
+  const reports = fs.readFileSync(new URL("../api/reports.js", import.meta.url), "utf8");
+  assert.doesNotMatch(reports, /request\.method === "GET"/);
+  assert.doesNotMatch(reports, /statusUrl:/);
   assert.equal(vercel.cleanUrls, true);
 });
