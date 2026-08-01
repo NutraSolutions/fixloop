@@ -12,4 +12,7 @@ alter table fixloop.reports
     )
   );
 
+create index if not exists fixloop_reports_created_idx
+  on fixloop.reports (created_at desc, public_id desc);
+
 commit;

@@ -61,5 +61,8 @@ create index if not exists fixloop_reports_queue_idx
 create index if not exists fixloop_reports_issue_idx
   on fixloop.reports (repository, github_issue_number);
 
+create index if not exists fixloop_reports_created_idx
+  on fixloop.reports (created_at desc, public_id desc);
+
 create index if not exists fixloop_events_report_idx
   on fixloop.events (report_id, created_at);

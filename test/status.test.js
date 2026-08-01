@@ -69,9 +69,13 @@ test("operator list requires an exact separate status secret", () => {
 });
 
 test("operator cursor round-trips and rejects malformed input", () => {
-  const report = { created_at: "2026-08-01T00:00:00.000Z", public_id: "a".repeat(24) };
+  const report = {
+    created_at: "2026-08-01T00:00:00.123Z",
+    cursor_created_at: "2026-08-01 00:00:00.123456+00",
+    public_id: "a".repeat(24)
+  };
   assert.deepEqual(parseOperatorCursor(operatorCursor(report)), {
-    createdAt: report.created_at,
+    createdAt: report.cursor_created_at,
     publicId: report.public_id
   });
   assert.throws(() => parseOperatorCursor("bad"), /Invalid status cursor/);
@@ -107,17 +111,17 @@ test("status report selection keeps public IDs parameterized", async () => {
   };
   const ids = ["a".repeat(24), "b".repeat(24)];
   await selectStatusReports(client, ids);
-  assert.deepEqual(observed.values, [ids]);
+  assert.deepEqual(observed.values, [ids, MAX_STATUS_EVENTS]);
   assert.match(observed.text, /r\.public_id = any\(\$1::text\[\]\)/);
   assert.doesNotMatch(observed.text, new RegExp(ids[0]));
   const cursor = { createdAt: "2026-08-01T00:00:00.000Z", publicId: "c".repeat(24) };
   await selectStatusReports(client, null, cursor);
-  assert.deepEqual(observed.values, [MAX_OPERATOR_REPORTS + 1, cursor.createdAt, cursor.publicId]);
+  assert.deepEqual(observed.values, [MAX_OPERATOR_REPORTS + 1, cursor.createdAt, cursor.publicId, MAX_STATUS_EVENTS]);
   assert.match(observed.text, /with selected as/);
   assert.match(observed.text, /limit \$1/);
   assert.match(observed.text, /\(created_at, public_id\) </);
   assert.match(observed.text, /left join lateral/);
-  assert.match(observed.text, new RegExp(`limit ${MAX_STATUS_EVENTS}`));
+  assert.match(observed.text, /limit \$4/);
   assert.match(observed.text, /count\(\*\) over \(\)/);
   assert.match(observed.text, /event_count/);
 });
@@ -153,6 +157,7 @@ test("status page renders untrusted report data through textContent", () => {
   const client = fs.readFileSync(new URL("../public/status.js", import.meta.url), "utf8");
   const processor = fs.readFileSync(new URL("../api/process.js", import.meta.url), "utf8");
   const endpoint = fs.readFileSync(new URL("../api/status.js", import.meta.url), "utf8");
+  const schema = fs.readFileSync(new URL("../sql/schema.sql", import.meta.url), "utf8");
   const vercel = JSON.parse(fs.readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
   assert.match(page, /id="reportList"/);
   assert.match(page, /id="trackingForm"/);
@@ -170,5 +175,6 @@ test("status page renders untrusted report data through textContent", () => {
   const reports = fs.readFileSync(new URL("../api/reports.js", import.meta.url), "utf8");
   assert.doesNotMatch(reports, /request\.method === "GET"/);
   assert.doesNotMatch(reports, /statusUrl:/);
+  assert.match(schema, /fixloop_reports_created_idx/);
   assert.equal(vercel.cleanUrls, true);
 });
