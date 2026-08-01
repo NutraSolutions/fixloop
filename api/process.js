@@ -4,6 +4,7 @@ import { repositoryCatalog, findIssueByMarker, createIssue } from "../lib/github
 import { classifyReport } from "../lib/classifier.js";
 import { json, method } from "../lib/http.js";
 import { timingSafeHeader } from "../lib/validation.js";
+import { publicStatusPageUrl } from "../lib/status.js";
 
 const MAX_ATTEMPTS = 5;
 
@@ -45,8 +46,11 @@ async function claimNext() {
 }
 
 function issueBody(report, route) {
-  const base = process.env.FIXLOOP_PUBLIC_BASE_URL?.replace(/\/$/, "");
-  const statusUrl = base ? `${base}/status#${report.public_id}` : null;
+  const statusUrl = publicStatusPageUrl(
+    report.public_id,
+    process.env.FIXLOOP_PUBLIC_BASE_URL,
+    false
+  );
   const attachmentList = report.attachments.length
     ? report.attachments.map((file) => `- ${markdownText(file.filename)} (${file.mime_type}, ${file.byte_size} bytes)`).join("\n")
     : "None";
