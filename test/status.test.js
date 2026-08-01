@@ -11,6 +11,7 @@ import {
   MAX_STATUS_EVENTS,
   MAX_OPERATOR_REPORTS,
   MAX_STATUS_REPORTS,
+  publicServiceUrl,
   publicStatusPageUrl,
   selectStatusReports,
   skipStatusReport,
@@ -99,10 +100,19 @@ test("public status links use the configured service origin", () => {
   const id = "a".repeat(24);
   assert.equal(publicStatusPageUrl(id, "https://bugs.example.com/"), `https://bugs.example.com/status#${id}`);
   assert.equal(publicStatusPageUrl(id, "https://bugs.example.com/fixloop/"), `https://bugs.example.com/fixloop/status#${id}`);
+  assert.equal(publicStatusPageUrl(id, "https://user:pw@bugs.example.com/fixloop"), `https://bugs.example.com/fixloop/status#${id}`);
   assert.equal(publicStatusPageUrl(id, ""), `/status#${id}`);
   assert.equal(publicStatusPageUrl(id, "bugs.example.com"), `/status#${id}`);
   assert.equal(publicStatusPageUrl(id, "bugs.example.com", false), null);
   assert.equal(publicStatusPageUrl(id, "javascript:alert(1)"), `/status#${id}`);
+});
+
+test("public service links preserve path and remove credentials", () => {
+  assert.equal(
+    publicServiceUrl("api/agent-status", "https://user:pw@bugs.example.com/fixloop?x=1#y"),
+    "https://bugs.example.com/fixloop/api/agent-status"
+  );
+  assert.equal(publicServiceUrl("api/agent-status", "bugs.example.com"), null);
 });
 
 test("widget status links allow HTTP only", () => {
