@@ -11,6 +11,7 @@ create table if not exists fixloop.reports (
   page_title text not null,
   page_url text not null,
   description text not null,
+  sender_identity text,
   requested_repository text,
   repository text,
   severity text not null default 'normal',
@@ -32,6 +33,9 @@ create table if not exists fixloop.reports (
   ),
   constraint fixloop_report_severity check (
     severity in ('low', 'normal', 'high', 'critical')
+  ),
+  constraint fixloop_sender_identity_length check (
+    sender_identity is null or char_length(sender_identity) <= 320
   )
 );
 

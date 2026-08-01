@@ -2,6 +2,7 @@ import { withTransaction, addEvent } from "../lib/db.js";
 import { json, method } from "../lib/http.js";
 import { reportInput } from "../lib/validation.js";
 import { publicStatusPageUrl } from "../lib/status.js";
+import { insertReport } from "../lib/report-store.js";
 
 export const config = {
   api: { bodyParser: { sizeLimit: "4mb" } }
@@ -17,21 +18,7 @@ async function createReport(request, response) {
 
   try {
     const report = await withTransaction(async (client) => {
-      const inserted = await client.query(
-        `insert into fixloop.reports
-          (client_request_id, page_title, page_url, description, requested_repository)
-         values ($1, $2, $3, $4, $5)
-         on conflict (client_request_id)
-         do update set client_request_id = excluded.client_request_id
-         returning id, public_id, status, created_at`,
-        [
-          input.clientRequestId,
-          input.pageTitle,
-          input.pageUrl,
-          input.description,
-          input.requestedRepository
-        ]
-      );
+      const inserted = await insertReport(client, input);
       const row = inserted.rows[0];
       for (const attachment of input.attachments) {
         await client.query(
