@@ -1,5 +1,6 @@
 import { database, withTransaction, addEvent } from "../lib/db.js";
 import { json, method } from "../lib/http.js";
+import { parseReportIds } from "../lib/status.js";
 import { reportInput } from "../lib/validation.js";
 
 export const config = {
@@ -55,6 +56,7 @@ async function createReport(request, response) {
       id: report.public_id,
       status: report.status,
       statusUrl: `/api/reports?id=${report.public_id}`,
+      statusPageUrl: `/status?report=${report.public_id}`,
       createdAt: report.created_at
     });
   } catch (error) {
@@ -93,8 +95,43 @@ async function getReport(request, response) {
   }
 }
 
+async function getReports(request, response) {
+  let ids;
+  try {
+    ids = parseReportIds(request.query?.ids);
+  } catch (error) {
+    return json(response, 400, { error: error.message });
+  }
+  try {
+    const result = await database().query(
+      `select
+         r.public_id, r.created_at, r.updated_at, r.page_title, r.status,
+         r.repository, r.github_issue_url, r.pull_request_url, r.deployment_url,
+         r.resolution_summary,
+         coalesce(
+           json_agg(
+             json_build_object('status', e.status, 'detail', e.detail, 'createdAt', e.created_at)
+             order by e.created_at
+           ) filter (where e.id is not null),
+           '[]'
+         ) as events
+       from fixloop.reports r
+       left join fixloop.events e on e.report_id = r.id
+       where r.public_id = any($1::text[])
+       group by r.id
+       order by array_position($1::text[], r.public_id)`,
+      [ids]
+    );
+    return json(response, 200, { reports: result.rows });
+  } catch (error) {
+    console.error("list reports failed", error);
+    return json(response, 500, { error: "Status is temporarily unavailable" });
+  }
+}
+
 export default async function handler(request, response) {
   if (request.method === "POST") return createReport(request, response);
+  if (request.method === "GET" && request.query?.ids != null) return getReports(request, response);
   if (request.method === "GET") return getReport(request, response);
   return method(response, ["GET", "POST"]);
 }

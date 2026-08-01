@@ -80,6 +80,7 @@ body.fixloop-open { overflow: hidden; }
 .fixloop__message { min-height: 22px; margin: -7px 0; font-weight: 650; }
 .fixloop__message[data-state=error] { color: #a32621; }
 .fixloop__message[data-state=success] { color: #3e6800; }
+.fixloop__message a { color: inherit; font-weight: 800; }
 .fixloop__modal footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .fixloop__modal footer > span { color: #777a71; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fixloop__submit {

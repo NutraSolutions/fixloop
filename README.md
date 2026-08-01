@@ -9,6 +9,8 @@ Fixloop is a portable bug-to-fix loop for any web application:
 5. An optional signed agent webhook starts the fix and re-pings unfinished work every twelve hours.
 6. Agent and GitHub callbacks build a public status timeline through verification.
 
+The `/status` page lists reports submitted from the current browser. A tracking ID can be added manually when a report was submitted elsewhere. The page fetches only unguessable report IDs already known to the browser; it never exposes a public directory of every customer's reports.
+
 No reporter identity is collected. Query strings, URL fragments, credentials, and browser fingerprints are excluded by default.
 
 ## Demo

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Track Fixloop submissions from intake through verification.">
+  <title>Fixloop status</title>
+  <link rel="stylesheet" href="/status.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">FIXLOOP</a>
+    <a class="home" href="/">Report a bug</a>
+  </header>
+  <main>
+    <section class="intro">
+      <p class="eyebrow">SUBMITTED FIXES</p>
+      <h1>Every fix.<br>One timeline.</h1>
+      <p class="lede">Reports saved in this browser appear here from intake through verified deployment.</p>
+    </section>
+
+    <section class="tracker" aria-labelledby="tracker-title">
+      <div>
+        <p class="eyebrow">OPEN ANOTHER REPORT</p>
+        <h2 id="tracker-title">Have a tracking ID?</h2>
+      </div>
+      <form id="trackingForm">
+        <label for="trackingId">Tracking ID</label>
+        <input id="trackingId" name="trackingId" inputmode="text" maxlength="24" pattern="[a-f0-9]{24}" autocomplete="off" required>
+        <button type="submit">Add report</button>
+      </form>
+    </section>
+
+    <section class="reports" aria-labelledby="reports-title">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">LIVE STATUS</p>
+          <h2 id="reports-title">Your submitted fixes</h2>
+        </div>
+        <button id="refresh" type="button">Refresh</button>
+      </div>
+      <p id="message" class="message" role="status" aria-live="polite">Loading status...</p>
+      <div id="reportList" class="report-list"></div>
+    </section>
+  </main>
+  <script type="module" src="/status.js"></script>
+</body>
+</html>

@@ -11,7 +11,9 @@
     .shell { min-height: 100vh; padding: 24px; }
     nav { display: flex; align-items: center; justify-content: space-between; max-width: 1160px; margin: auto; }
     .brand { font: 850 18px/1 ui-monospace, monospace; letter-spacing: -.04em; }
-    .pill { padding: 8px 12px; border: 1px solid rgba(23,27,34,.2); border-radius: 999px; font-size: 12px; }
+    .nav-actions { display: flex; align-items: center; gap: 9px; }
+    .pill { padding: 8px 12px; border: 1px solid rgba(23,27,34,.2); border-radius: 999px; color: inherit; font-size: 12px; text-decoration: none; }
+    .pill:hover { background: rgba(255,255,255,.5); }
     main { max-width: 1160px; margin: 72px auto 0; }
     .hero { display: grid; grid-template-columns: 1.4fr .8fr; gap: 60px; align-items: end; }
     .kicker { font: 800 11px/1 ui-monospace, monospace; letter-spacing: .16em; }
@@ -29,7 +31,7 @@
 </head>
 <body>
   <div class="shell">
-    <nav><div class="brand">FIXLOOP</div><div class="pill">OPEN SOURCE</div></nav>
+    <nav><div class="brand">FIXLOOP</div><div class="nav-actions"><a class="pill" href="/status">VIEW STATUS</a><div class="pill">OPEN SOURCE</div></div></nav>
     <main>
       <section class="hero">
         <div>
