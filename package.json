@@ -10,7 +10,7 @@
   "scripts": {
     "build:showcase": "node scripts/build-showcase.mjs",
     "test": "node --test",
-    "check": "node --check public/fixloop.js && node --check public/status.js && node --check api/reports.js && node --check api/status.js && node --check api/process.js && node --check api/github-webhook.js && node --check api/agent-status.js && node --check lib/status.js && node --test"
+    "check": "node --check public/fixloop.js && node --check public/status.js && node --check api/reports.js && node --check api/status.js && node --check api/process.js && node --check api/github-webhook.js && node --check api/agent-status.js && node --check lib/report-log.js && node --check lib/report-store.js && node --check lib/status.js && node --test"
   },
   "dependencies": {
     "pg": "^8.16.3"

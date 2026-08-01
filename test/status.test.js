@@ -176,6 +176,7 @@ test("status page renders untrusted report data through textContent", () => {
   const page = fs.readFileSync(new URL("../public/status.html", import.meta.url), "utf8");
   const client = fs.readFileSync(new URL("../public/status.js", import.meta.url), "utf8");
   const processor = fs.readFileSync(new URL("../api/process.js", import.meta.url), "utf8");
+  const issueLog = fs.readFileSync(new URL("../lib/report-log.js", import.meta.url), "utf8");
   const endpoint = fs.readFileSync(new URL("../api/status.js", import.meta.url), "utf8");
   const schema = fs.readFileSync(new URL("../sql/schema.sql", import.meta.url), "utf8");
   const vercel = JSON.parse(fs.readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
@@ -190,7 +191,8 @@ test("status page renders untrusted report data through textContent", () => {
   assert.match(client, /earlier events omitted/);
   assert.match(page, /id="loadMore"/);
   assert.match(client, /\['http:', 'https:'\]/);
-  assert.match(processor, /publicStatusPageUrl/);
+  assert.match(processor, /issueBody/);
+  assert.match(issueLog, /publicStatusPageUrl/);
   assert.match(endpoint, /FIXLOOP_STATUS_SECRET/);
   const reports = fs.readFileSync(new URL("../api/reports.js", import.meta.url), "utf8");
   assert.doesNotMatch(reports, /request\.method === "GET"/);

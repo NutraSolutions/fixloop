@@ -27,13 +27,14 @@ test("permanent client errors are not retried", () => {
 
 test("sender identity reaches durable intake and downstream logs", () => {
   const widget = fs.readFileSync(new URL("../public/fixloop.js", import.meta.url), "utf8");
-  const endpoint = fs.readFileSync(new URL("../api/reports.js", import.meta.url), "utf8");
+  const store = fs.readFileSync(new URL("../lib/report-store.js", import.meta.url), "utf8");
   const processor = fs.readFileSync(new URL("../api/process.js", import.meta.url), "utf8");
+  const issueLog = fs.readFileSync(new URL("../lib/report-log.js", import.meta.url), "utf8");
   const schema = fs.readFileSync(new URL("../sql/schema.sql", import.meta.url), "utf8");
   const migration = fs.readFileSync(new URL("../sql/003_sender_identity.sql", import.meta.url), "utf8");
   assert.match(widget, /senderIdentity: this\.options\.senderIdentity \|\| null/);
-  assert.match(endpoint, /sender_identity = coalesce\(fixloop\.reports\.sender_identity, excluded\.sender_identity\)/);
-  assert.match(processor, /Reported sender:.*senderIdentityForLog/);
+  assert.match(store, /sender_identity = coalesce\(fixloop\.reports\.sender_identity, excluded\.sender_identity\)/);
+  assert.match(issueLog, /Caller-supplied sender \(unverified\):.*senderIdentityForLog/);
   assert.match(processor, /senderIdentity: report\.sender_identity \|\| null/);
   assert.match(processor, /senderIdentitySource: report\.sender_identity \? "caller" : null/);
   assert.match(schema, /sender_identity text/);

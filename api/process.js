@@ -3,14 +3,11 @@ import { withTransaction, addEvent } from "../lib/db.js";
 import { repositoryCatalog, findIssueByMarker, createIssue } from "../lib/github.js";
 import { classifyReport } from "../lib/classifier.js";
 import { json, method } from "../lib/http.js";
-import { senderIdentityForLog, timingSafeHeader } from "../lib/validation.js";
-import { publicServiceUrl, publicStatusPageUrl } from "../lib/status.js";
+import { issueBody } from "../lib/report-log.js";
+import { timingSafeHeader } from "../lib/validation.js";
+import { publicServiceUrl } from "../lib/status.js";
 
 const MAX_ATTEMPTS = 5;
-
-function markdownText(value) {
-  return String(value).replace(/[\\`*_[\]<>]/g, "\\$&");
-}
 
 async function claimNext() {
   return withTransaction(async (client) => {
@@ -43,32 +40,6 @@ async function claimNext() {
     );
     return { ...report, attachments: attachments.rows };
   });
-}
-
-function issueBody(report, route) {
-  const statusUrl = publicStatusPageUrl(
-    report.public_id,
-    process.env.FIXLOOP_PUBLIC_BASE_URL,
-    false
-  );
-  const attachmentList = report.attachments.length
-    ? report.attachments.map((file) => `- ${markdownText(file.filename)} (${file.mime_type}, ${file.byte_size} bytes)`).join("\n")
-    : "None";
-  return [
-    route.description,
-    "",
-    "## Source",
-    `- Page: ${report.page_title}`,
-    `- URL: ${report.page_url}`,
-    `- Severity: ${route.severity}`,
-    `- Reported sender: ${markdownText(senderIdentityForLog(report.sender_identity))}`,
-    statusUrl ? `- Public status: ${statusUrl}` : null,
-    "",
-    "## Attachments",
-    attachmentList,
-    "",
-    `<!-- fixloop:${report.public_id} -->`
-  ].filter(Boolean).join("\n");
 }
 
 async function dispatchAgent(report, issue, delivery = "initial") {
