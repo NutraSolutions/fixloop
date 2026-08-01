@@ -1,6 +1,7 @@
 import { database, withTransaction, addEvent } from "../lib/db.js";
 import { json, method } from "../lib/http.js";
 import { reportInput } from "../lib/validation.js";
+import { MAX_STATUS_EVENTS, publicStatusPageUrl } from "../lib/status.js";
 
 export const config = {
   api: { bodyParser: { sizeLimit: "4mb" } }
@@ -55,7 +56,7 @@ async function createReport(request, response) {
       id: report.public_id,
       status: report.status,
       statusUrl: `/api/reports?id=${report.public_id}`,
-      statusPageUrl: `/status#${report.public_id}`,
+      statusPageUrl: publicStatusPageUrl(report.public_id),
       createdAt: report.created_at
     });
   } catch (error) {
@@ -81,7 +82,13 @@ async function getReport(request, response) {
            '[]'
          ) as events
        from fixloop.reports r
-       left join fixloop.events e on e.report_id = r.id
+       left join lateral (
+         select id, status, detail, created_at
+         from fixloop.events
+         where report_id = r.id
+         order by created_at desc
+         limit ${MAX_STATUS_EVENTS}
+       ) e on true
        where r.public_id = $1
        group by r.id`,
       [id]

@@ -122,11 +122,12 @@ async function loadReports() {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || `Status failed (${response.status})`);
-    for (const report of payload.reports || []) list.append(renderReport(report));
-    const missing = operatorKey ? 0 : tracked.length - (payload.reports || []).length;
+    const reports = Array.isArray(payload.reports) ? payload.reports : [];
+    for (const report of reports) list.append(renderReport(report));
+    const missing = operatorKey ? 0 : tracked.length - reports.length;
     message.textContent = missing
-      ? `${payload.reports.length} reports loaded. ${missing} tracking IDs were not found.`
-      : `${payload.reports.length} reports loaded.`;
+      ? `${reports.length} reports loaded. ${missing} tracking IDs were not found.`
+      : `${reports.length} reports loaded.`;
     message.dataset.state = "ready";
   } catch (error) {
     message.textContent = error.message || "Status is temporarily unavailable.";

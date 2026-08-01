@@ -10,6 +10,16 @@ const DEFAULTS = {
 };
 
 export const TRACKED_REPORTS_KEY = "fixloop.reports.v1";
+
+export function safeStatusPageLink(value, baseUrl = globalThis.document?.baseURI) {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value, baseUrl);
+    return ["http:", "https:"].includes(parsed.protocol) ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
 const REPORT_ID = /^[a-f0-9]{24}$/;
 
 function availableStorage(storage) {
@@ -294,9 +304,10 @@ export class FixloopWidget {
   message(text, state = "", link = null) {
     const element = this.root.querySelector(".fixloop__message");
     element.replaceChildren(document.createTextNode(text));
-    if (link) {
+    const safeLink = safeStatusPageLink(link);
+    if (safeLink) {
       const anchor = document.createElement("a");
-      anchor.href = link;
+      anchor.href = safeLink;
       anchor.textContent = "View status";
       element.append(" ", anchor);
     }

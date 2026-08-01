@@ -4,13 +4,20 @@ import fs from "node:fs";
 import {
   parseReportId,
   parseReportIds,
+  MAX_STATUS_EVENTS,
   MAX_OPERATOR_REPORTS,
   MAX_STATUS_REPORTS,
+  publicStatusPageUrl,
   selectStatusReports,
   skipStatusReport,
   statusAuthorized
 } from "../lib/status.js";
-import { rememberReport, trackedReports, TRACKED_REPORTS_KEY } from "../public/fixloop.js";
+import {
+  rememberReport,
+  safeStatusPageLink,
+  trackedReports,
+  TRACKED_REPORTS_KEY
+} from "../public/fixloop.js";
 
 class MemoryStorage {
   constructor() { this.values = new Map(); }
@@ -58,6 +65,18 @@ test("operator list requires an exact separate status secret", () => {
   assert.equal(statusAuthorized({ headers: {} }, "correct"), false);
 });
 
+test("public status links use the configured service origin", () => {
+  const id = "a".repeat(24);
+  assert.equal(publicStatusPageUrl(id, "https://bugs.example.com/"), `https://bugs.example.com/status#${id}`);
+  assert.equal(publicStatusPageUrl(id, ""), `/status#${id}`);
+});
+
+test("widget status links allow HTTP only", () => {
+  assert.equal(safeStatusPageLink("/status#abc", "https://shop.example.com/page"), "https://shop.example.com/status#abc");
+  assert.equal(safeStatusPageLink("https://bugs.example.com/status#abc"), "https://bugs.example.com/status#abc");
+  assert.equal(safeStatusPageLink("javascript:alert(1)", "https://shop.example.com"), null);
+});
+
 test("status report selection keeps public IDs parameterized", async () => {
   let observed;
   const client = {
@@ -75,6 +94,8 @@ test("status report selection keeps public IDs parameterized", async () => {
   assert.deepEqual(observed.values, [MAX_OPERATOR_REPORTS]);
   assert.match(observed.text, /with selected as/);
   assert.match(observed.text, /limit \$1/);
+  assert.match(observed.text, /left join lateral/);
+  assert.match(observed.text, new RegExp(`limit ${MAX_STATUS_EVENTS}`));
 });
 
 test("operator skip retains the report and records an audit event", async () => {
