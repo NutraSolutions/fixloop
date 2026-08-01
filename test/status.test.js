@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import {
+  agentStatusTransition,
   parseReportId,
   parseReportIds,
   operatorCursor,
@@ -42,6 +43,13 @@ test("parseReportIds validates, deduplicates, and preserves order", () => {
 test("parseReportId accepts exactly one bearer report id", () => {
   assert.equal(parseReportId("a".repeat(24)), "a".repeat(24));
   assert.throws(() => parseReportId("a".repeat(23)), /Invalid report id/);
+});
+
+test("stale agent callback cannot overwrite a skipped report", () => {
+  assert.equal(agentStatusTransition("skipped", "fixing"), "terminal");
+  assert.equal(agentStatusTransition("failed", "fixing"), "terminal");
+  assert.equal(agentStatusTransition("fixing", "assigned"), "regression");
+  assert.equal(agentStatusTransition("fixing", "pull_request"), "update");
 });
 
 test("rememberReport keeps a private browser-local ordered list", () => {
@@ -90,8 +98,10 @@ test("skip reason is required and bounded", () => {
 test("public status links use the configured service origin", () => {
   const id = "a".repeat(24);
   assert.equal(publicStatusPageUrl(id, "https://bugs.example.com/"), `https://bugs.example.com/status#${id}`);
+  assert.equal(publicStatusPageUrl(id, "https://bugs.example.com/fixloop/"), `https://bugs.example.com/fixloop/status#${id}`);
   assert.equal(publicStatusPageUrl(id, ""), `/status#${id}`);
   assert.equal(publicStatusPageUrl(id, "bugs.example.com"), `/status#${id}`);
+  assert.equal(publicStatusPageUrl(id, "bugs.example.com", false), null);
   assert.equal(publicStatusPageUrl(id, "javascript:alert(1)"), `/status#${id}`);
 });
 
@@ -170,7 +180,7 @@ test("status page renders untrusted report data through textContent", () => {
   assert.match(client, /earlier events omitted/);
   assert.match(page, /id="loadMore"/);
   assert.match(client, /\['http:', 'https:'\]/);
-  assert.match(processor, /\/status#\$\{report\.public_id\}/);
+  assert.match(processor, /publicStatusPageUrl/);
   assert.match(endpoint, /FIXLOOP_STATUS_SECRET/);
   const reports = fs.readFileSync(new URL("../api/reports.js", import.meta.url), "utf8");
   assert.doesNotMatch(reports, /request\.method === "GET"/);

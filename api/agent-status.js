@@ -1,16 +1,9 @@
 import { withTransaction, addEvent } from "../lib/db.js";
 import { json, method } from "../lib/http.js";
+import { agentStatusTransition } from "../lib/status.js";
 import { timingSafeHeader } from "../lib/validation.js";
 
 const STATUS = new Set(["assigned", "fixing", "pull_request", "deployed", "verified", "failed"]);
-const RANK = new Map([
-  ["filed", 0],
-  ["assigned", 1],
-  ["fixing", 2],
-  ["pull_request", 3],
-  ["deployed", 4],
-  ["verified", 5]
-]);
 
 function optionalHttpUrl(value, field) {
   if (!value) return null;
@@ -47,10 +40,8 @@ export default async function handler(request, response) {
       );
       if (!selected.rowCount) return "not_found";
       const current = selected.rows[0];
-      if (["verified", "failed"].includes(current.status)) return "terminal";
-      if (status !== "failed" && (RANK.get(status) ?? -1) < (RANK.get(current.status) ?? -1)) {
-        return "regression";
-      }
+      const transition = agentStatusTransition(current.status, status);
+      if (transition !== "update") return transition;
       await client.query(
         `update fixloop.reports
          set status = $2,
