@@ -87,6 +87,8 @@ test("public status links use the configured service origin", () => {
   const id = "a".repeat(24);
   assert.equal(publicStatusPageUrl(id, "https://bugs.example.com/"), `https://bugs.example.com/status#${id}`);
   assert.equal(publicStatusPageUrl(id, ""), `/status#${id}`);
+  assert.equal(publicStatusPageUrl(id, "bugs.example.com"), `/status#${id}`);
+  assert.equal(publicStatusPageUrl(id, "javascript:alert(1)"), `/status#${id}`);
 });
 
 test("widget status links allow HTTP only", () => {
@@ -116,6 +118,8 @@ test("status report selection keeps public IDs parameterized", async () => {
   assert.match(observed.text, /\(created_at, public_id\) </);
   assert.match(observed.text, /left join lateral/);
   assert.match(observed.text, new RegExp(`limit ${MAX_STATUS_EVENTS}`));
+  assert.match(observed.text, /count\(\*\) over \(\)/);
+  assert.match(observed.text, /event_count/);
 });
 
 test("operator skip retains the report and records an audit event", async () => {
@@ -158,6 +162,7 @@ test("status page renders untrusted report data through textContent", () => {
   assert.match(client, /history\.replaceState/);
   assert.match(client, /method: "DELETE"/);
   assert.match(client, /reason: reason\.value\.trim\(\)/);
+  assert.match(client, /earlier events omitted/);
   assert.match(page, /id="loadMore"/);
   assert.match(client, /\['http:', 'https:'\]/);
   assert.match(processor, /\/status#\$\{report\.public_id\}/);

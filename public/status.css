@@ -51,6 +51,7 @@ h2 { margin: 0; font-size: 25px; letter-spacing: -.03em; }
 .skip-reason { min-width: 0; flex: 1 1 auto; border: 1px solid var(--line); border-radius: 9px; padding: 9px 12px; }
 .timeline { display: grid; gap: 14px; margin: 22px 0 0; padding: 0; list-style: none; }
 .timeline li { position: relative; padding-left: 18px; }
+.timeline .timeline-omitted { color: var(--muted); font-style: italic; }
 .timeline li::before { position: absolute; left: 0; top: 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--ink); content: ""; }
 .timeline-line { display: flex; align-items: baseline; justify-content: space-between; gap: 15px; }
 .timeline time { color: var(--muted); font-size: 11px; }

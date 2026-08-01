@@ -72,6 +72,13 @@ function renderReport(report) {
   ].filter(Boolean)) links.append(link);
 
   const timeline = element("ol", "timeline");
+  if (Number(report.event_count) > (report.events || []).length) {
+    timeline.append(element(
+      "li",
+      "timeline-omitted",
+      `${Number(report.event_count) - report.events.length} earlier events omitted.`
+    ));
+  }
   for (const event of report.events || []) {
     const item = element("li");
     const line = element("div", "timeline-line");
