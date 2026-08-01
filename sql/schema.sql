@@ -26,7 +26,8 @@ create table if not exists fixloop.reports (
   constraint fixloop_report_status check (
     status in (
       'received', 'processing', 'needs_clarification', 'filed',
-      'assigned', 'fixing', 'pull_request', 'deployed', 'verified', 'failed'
+      'assigned', 'fixing', 'pull_request', 'deployed', 'verified', 'failed',
+      'skipped'
     )
   ),
   constraint fixloop_report_severity check (

@@ -374,7 +374,7 @@ export class FixloopWidget {
         }
       }
       rememberReport(result);
-      const statusPage = result.statusPageUrl || `${this.options.statusPageUrl}?report=${encodeURIComponent(result.id)}`;
+      const statusPage = result.statusPageUrl || `${this.options.statusPageUrl}#${encodeURIComponent(result.id)}`;
       this.message(`Saved. Tracking ID: ${result.id}`, "success", statusPage);
       this.options.onSubmitted?.(result);
       form.reset();

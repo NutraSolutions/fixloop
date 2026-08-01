@@ -10,7 +10,8 @@ const STATUS_LABELS = Object.freeze({
   pull_request: "Pull request",
   deployed: "Deployed",
   verified: "Verified",
-  failed: "Needs attention"
+  failed: "Needs attention",
+  skipped: "Skipped"
 });
 
 function formatDate(value) {
@@ -85,16 +86,24 @@ function renderReport(report) {
   article.append(header, meta);
   if (links.childElementCount) article.append(links);
   if (report.resolution_summary) article.append(element("p", "resolution", report.resolution_summary));
+  if (operatorKey && ["received", "needs_clarification", "failed"].includes(report.status)) {
+    const button = element("button", "skip-report", "Skip report");
+    button.type = "button";
+    button.dataset.reportId = report.public_id;
+    article.append(button);
+  }
   article.append(timeline);
   return article;
 }
+
+let operatorKey = null;
 
 async function loadReports() {
   const message = document.querySelector("#message");
   const list = document.querySelector("#reportList");
   const tracked = trackedReports();
   list.replaceChildren();
-  if (!tracked.length) {
+  if (!tracked.length && !operatorKey) {
     message.textContent = "No reports saved in this browser yet.";
     message.dataset.state = "empty";
     return;
@@ -102,14 +111,19 @@ async function loadReports() {
   message.textContent = "Refreshing status...";
   message.dataset.state = "loading";
   try {
-    const ids = tracked.map((item) => item.id).join(",");
-    const response = await fetch(`/api/reports?ids=${encodeURIComponent(ids)}`, {
-      headers: { Accept: "application/json" }
+    const response = await fetch("/api/status", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        ...(operatorKey ? { "X-Fixloop-Status-Secret": operatorKey } : {})
+      },
+      body: JSON.stringify(operatorKey ? {} : { ids: tracked.map((item) => item.id) })
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || `Status failed (${response.status})`);
     for (const report of payload.reports || []) list.append(renderReport(report));
-    const missing = tracked.length - (payload.reports || []).length;
+    const missing = operatorKey ? 0 : tracked.length - (payload.reports || []).length;
     message.textContent = missing
       ? `${payload.reports.length} reports loaded. ${missing} tracking IDs were not found.`
       : `${payload.reports.length} reports loaded.`;
@@ -120,8 +134,16 @@ async function loadReports() {
   }
 }
 
-const queryId = new URLSearchParams(location.search).get("report");
-if (/^[a-f0-9]{24}$/.test(String(queryId || ""))) rememberReport({ id: queryId });
+let fragmentId = "";
+try {
+  fragmentId = decodeURIComponent(location.hash.slice(1));
+} catch {
+  fragmentId = "";
+}
+if (/^[a-f0-9]{24}$/.test(fragmentId)) {
+  rememberReport({ id: fragmentId });
+  history.replaceState(null, "", `${location.pathname}${location.search}`);
+}
 
 document.querySelector("#trackingForm").addEventListener("submit", (event) => {
   event.preventDefault();
@@ -132,4 +154,35 @@ document.querySelector("#trackingForm").addEventListener("submit", (event) => {
   loadReports();
 });
 document.querySelector("#refresh").addEventListener("click", loadReports);
+document.querySelector("#reportList").addEventListener("click", async (event) => {
+  const button = event.target.closest(".skip-report");
+  if (!button || !operatorKey) return;
+  button.disabled = true;
+  try {
+    const response = await fetch("/api/status", {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "X-Fixloop-Status-Secret": operatorKey
+      },
+      body: JSON.stringify({ id: button.dataset.reportId })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || `Skip failed (${response.status})`);
+    await loadReports();
+  } catch (error) {
+    const message = document.querySelector("#message");
+    message.textContent = error.message || "The report could not be skipped.";
+    message.dataset.state = "error";
+    button.disabled = false;
+  }
+});
+document.querySelector("#operatorForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const input = event.currentTarget.elements.statusKey;
+  operatorKey = input.value;
+  input.value = "";
+  loadReports();
+});
 loadReports();
